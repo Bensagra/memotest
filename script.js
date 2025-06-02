@@ -5,9 +5,9 @@
 // 1.1) Carpeta donde están las imágenes (relativo a index.html)
 const IMAGE_PATH = "images/";
 
-// 1.2) Lista con todos los nombres de archivo en /images/
-//     --> El navegador NO puede leer carpetas, así que hay que ponerlos manualmente.
-//     --> Cada par debe compartir un PREFIJO antes del guión bajo, p.ej. A_1.png y A_2.png.
+// 1.2) LISTA MANUAL de todos los nombres de archivo en /images/
+//     --> El navegador NO puede listar carpetas solo, así que enumera aquí cada imagen.
+//     --> Cada par debe compartir el mismo prefijo antes del "_".
 const ALL_IMAGE_FILES = [
   "A_1.png", "A_2.png",
   "B_1.png", "B_2.png",
@@ -16,28 +16,31 @@ const ALL_IMAGE_FILES = [
   "E_1.png", "E_2.png",
   "F_1.png", "F_2.png",
   "G_1.png", "G_2.png",
-  "H_1.png", "H_2.png"
-  // … si tienes más pares, agrégalos aquí
+  "H_1.png", "H_2.png",
+  "I_1.png", "I_2.png",
+  "J_1.png", "J_2.png",
+  "K_1.png", "K_2.png",
+  "L_1.png", "L_2.png",
+  "M_1.png", "M_2.png",
+  "N_1.png", "N_2.png",
+  "O_1.png", "O_2.png"   // Ejemplo para llegar a 32
+  // … agrega/quita según tus archivos. Total debe ser par.
 ];
 
-// 1.3) Indica cuántas cartas quieres usar:
-//      - Debe ser un número PAR
-//      - Debe ser <= ALL_IMAGE_FILES.length
-//      - Ejemplo: 16 → usará 8 pares (16 cartas).
-//      - Si quieres usar todas, pon ALL_IMAGE_FILES.length.
-const DESIRED_TOTAL_CARDS = 16;
+// 1.3) Variables derivadas
+const totalCards = ALL_IMAGE_FILES.length;  // e.g. 32
 
 const boardEl = document.getElementById("game-board");
 const startBtn = document.getElementById("start-btn");
 
-// Variables de estado globales (para resize dinámico)
-let firstFlippedCard = null;
+// Estado actual del juego
+let firstFlippedCard  = null;
 let secondFlippedCard = null;
-let lockBoard = false;
-let matchesFound = 0;
-let totalPairs = 0;
+let lockBoard         = false;
+let matchesFound      = 0;
+let totalPairs        = 0;
 
-// Guardaremos cuántas filas/columnas tenemos en la última generación
+// Guardaremos cuántas filas/columnas tiene la última generación
 let currentRows = 0;
 let currentCols = 0;
 
@@ -64,12 +67,11 @@ function shuffleArray(array) {
   }
 }
 
-// 2.3) Crea el elemento DOM de cada carta
+// 2.3) Crea el elemento DOM de cada carta (sin placeholder)
 function createCardElement(imageFile) {
-  // imageFile = "A_1.png", etc.
   const cardContainer = document.createElement("div");
   cardContainer.classList.add("card");
-  cardContainer.dataset.prefix = imageFile.split("_")[0]; // ej. "A"
+  cardContainer.dataset.prefix = imageFile.split("_")[0]; // ejemplo: "A"
 
   const inner = document.createElement("div");
   inner.classList.add("card-inner");
@@ -91,7 +93,7 @@ function createCardElement(imageFile) {
   inner.appendChild(frontFace);
   cardContainer.appendChild(inner);
 
-  // Evento de click para voltear
+  // Evento click para voltear
   cardContainer.addEventListener("click", () => {
     if (lockBoard) return;
     if (cardContainer === firstFlippedCard) return;
@@ -101,7 +103,7 @@ function createCardElement(imageFile) {
   return cardContainer;
 }
 
-// 2.4) Lógica de “flip”
+// 2.4) Lógica de voltear carta
 function flipCard(card) {
   card.classList.add("flipped");
 
@@ -116,47 +118,57 @@ function flipCard(card) {
 
 // 2.5) Comprueba si las dos cartas volteadas coinciden
 function checkForMatch() {
-  const isMatch = firstFlippedCard.dataset.prefix === secondFlippedCard.dataset.prefix;
+  const isMatch =
+    firstFlippedCard.dataset.prefix ===
+    secondFlippedCard.dataset.prefix;
 
   if (isMatch) {
-    // Si coinciden, deshabilitamos el click en esas dos cartas
-    firstFlippedCard.removeEventListener("click", () => {});
-    secondFlippedCard.removeEventListener("click", () => {});
-    resetFlippedCards();
+    // 2.5.1) Si coinciden, agregamos la clase “match” para flash verde
+    firstFlippedCard.classList.add("match");
+    secondFlippedCard.classList.add("match");
+
     matchesFound++;
-    if (matchesFound === totalPairs) {
-      setTimeout(() => alert("¡Ganaste! 🎉"), 200);
-    }
-  } else {
-    // Si no coincide, damos 800ms para que el usuario vea y luego volteamos de vuelta
+
+    // Tras 0.6s (duración animación), quitamos la clase y reseteamos estado
     setTimeout(() => {
-      firstFlippedCard.classList.remove("flipped");
-      secondFlippedCard.classList.remove("flipped");
+      firstFlippedCard.classList.remove("match");
+      secondFlippedCard.classList.remove("match");
       resetFlippedCards();
-    }, 800);
+
+      // Si ya encontramos todos los pares, avisamos victoria
+      if (matchesFound === totalPairs) {
+        setTimeout(() => alert("¡Ganaste! 🎉"), 200);
+      }
+    }, 1500);
+
+  } else {
+    // 2.5.2) Si no coinciden, agregamos la clase “mismatch” para flash rojo
+    firstFlippedCard.classList.add("mismatch");
+    secondFlippedCard.classList.add("mismatch");
+
+    // Tras 0.6s, quitamos “mismatch” y volteamos ambas cartas de nuevo a tapado
+    setTimeout(() => {
+      firstFlippedCard.classList.remove("mismatch", "flipped");
+      secondFlippedCard.classList.remove("mismatch", "flipped");
+      resetFlippedCards();
+    }, 1500);
   }
 }
 
-// 2.6) Resetea el estado de las cartas volteadas
+// 2.6) Resetea el estado de cartas volteadas
 function resetFlippedCards() {
   [firstFlippedCard, secondFlippedCard] = [null, null];
   lockBoard = false;
 }
 
 // ----------------------
-// 3) Función principal: genera el juego y calcula dimensiones
+// 3) Función principal: genera el juego con EXACTAMENTE 4 filas
 // ----------------------
 
 function startGame() {
-  // 3.1) Validaciones básicas
-  if (DESIRED_TOTAL_CARDS % 2 !== 0) {
-    alert("❌ DESIRED_TOTAL_CARDS debe ser un número par.");
-    return;
-  }
-  if (DESIRED_TOTAL_CARDS > ALL_IMAGE_FILES.length) {
-    alert(
-      `❌ Quieres ${DESIRED_TOTAL_CARDS} cartas, pero solo hay ${ALL_IMAGE_FILES.length} archivos en ALL_IMAGE_FILES.`
-    );
+  // 3.1) Validaciones: debe haber un número par de imágenes
+  if (totalCards % 2 !== 0) {
+    alert("❌ Debe haber un número par de imágenes en ALL_IMAGE_FILES.");
     return;
   }
 
@@ -168,102 +180,128 @@ function startGame() {
   const grouped = groupByPrefix(ALL_IMAGE_FILES);
   const prefixes = Object.keys(grouped);
 
-  // 3.4) Filtramos solo los prefijos que tengan al menos 2 archivos
+  // 3.4) Filtramos solo aquellos prefijos con AL MENOS 2 archivos
   const validPrefixes = prefixes.filter((p) => grouped[p].length >= 2);
 
-  // 3.5) Comprobamos que tengamos suficientes pares
-  const neededPairs = DESIRED_TOTAL_CARDS / 2;
-  if (validPrefixes.length < neededPairs) {
+  // 3.5) Comprobamos que haya suficientes pares
+  totalPairs = totalCards / 2;
+  if (validPrefixes.length < totalPairs) {
     alert(
-      `❌ No hay suficientes prefijos con al menos dos imágenes. Necesitas ${neededPairs} pares, pero solo hay ${validPrefixes.length}.`
+      `❌ No hay suficientes prefijos con al menos dos imágenes. ` +
+      `Necesitas ${totalPairs} pares, pero solo hay ${validPrefixes.length}.`
     );
     return;
   }
 
-  // 3.6) Mezclamos prefijos y elegimos los primeros neededPairs
+  // 3.6) Mezclamos los prefijos y tomamos EXACTAMENTE totalPairs prefijos
   shuffleArray(validPrefixes);
-  const selectedPrefixes = validPrefixes.slice(0, neededPairs);
+  const selectedPrefixes = validPrefixes.slice(0, totalPairs);
 
-  // 3.7) Armamos la lista cardsToUse con dos archivos de cada prefijo seleccionado
+  // 3.7) Construimos el array “cardsToUse” con 2 imágenes por prefijo
   const cardsToUse = [];
   selectedPrefixes.forEach((pref) => {
-    const pairFiles = grouped[pref].slice(0, 2); // Tomamos solo los primeros 2 (si hubiera más)
+    // Tomamos solo los primeros 2 archivos de cada grupo
+    const pairFiles = grouped[pref].slice(0, 2);
     cardsToUse.push(...pairFiles);
   });
 
-  // Ahora cardsToUse.length === DESIRED_TOTAL_CARDS
+  // Verificación: cardsToUse debe tener exactamente totalCards elementos
+  if (cardsToUse.length !== totalCards) {
+    alert("❌ Error interno: cardsToUse no coincide con totalCards.");
+    return;
+  }
+
+  // 3.8) Barajamos el array final de cartas
   shuffleArray(cardsToUse);
 
-  // 3.8) Calculamos cuántas filas (rows) y columnas (cols) nos hacen falta
-  currentRows = 1;
-  currentCols = DESIRED_TOTAL_CARDS;
-  const root = Math.floor(Math.sqrt(DESIRED_TOTAL_CARDS));
-  for (let i = root; i >= 1; i--) {
-    if (DESIRED_TOTAL_CARDS % i === 0) {
-      currentRows = i;
-      currentCols = DESIRED_TOTAL_CARDS / i;
-      break;
-    }
-  }
-  // Ahora currentRows × currentCols = DESIRED_TOTAL_CARDS.
+  // 3.9) Fijamos filas = 4 y calculamos cuántas columnas hacen falta
+  const rows = 4;
+  const cols = Math.ceil(totalCards / rows);
 
-  // 3.9) Configuramos el CSS Grid: number of columns/rows
-  boardEl.style.gridTemplateColumns = `repeat(${currentCols}, 1fr)`;
-  boardEl.style.gridTemplateRows = `repeat(${currentRows}, 1fr)`;
+  // 3.10) Calculamos tamaño responsivo de cada carta para que quepan 4 filas × cols columnas
+  const gap = 10; // debe coincidir con `gap: 10px` en CSS
 
-  // 3.10) Creamos cada carta y la agregamos al DOM
+  // Espacio disponible en pantalla
+  const viewportWidth  = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const occupiedAbove  = boardEl.offsetTop; // altura ocupada por <h1> + botón
+
+  // Restamos gaps: horizontalmente hay (cols−1) gaps; verticalmente (rows−1) gaps
+  const availableWidth  = viewportWidth  - gap * (cols - 1);
+  const availableHeight = viewportHeight - occupiedAbove - gap * (rows - 1);
+
+  // Tamaño máximo posible de cada carta
+  const cardSizeW = Math.floor(availableWidth  / cols);
+  const cardSizeH = Math.floor(availableHeight / rows);
+  const cardSize  = Math.min(cardSizeW, cardSizeH);
+
+  // 3.11) Guardamos filas/columnas en variables globales
+  currentRows = rows;
+  currentCols = cols;
+
+  // 3.12) Ajustamos la grid a “repeat(cols, 1fr)” × “repeat(4, 1fr)”
+  boardEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  boardEl.style.gridTemplateRows    = `repeat(${rows}, 1fr)`;
+
+  // 3.13) Fijamos el tamaño total del tablero (incluyendo gaps)
+  const boardWidth  = cardSize * cols + gap * (cols - 1);
+  const boardHeight = cardSize * rows + gap * (rows - 1);
+  boardEl.style.width  = `${boardWidth}px`;
+  boardEl.style.height = `${boardHeight}px`;
+
+  // 3.14) Creamos e insertamos cada carta (row by row).
+  //        Después, si sobran celdas (4×cols − totalCards), ponemos “placeholders” vacíos.
+  let inserted = 0;
+  // 3.14.1) Añadimos las cartas reales
   cardsToUse.forEach((fileName) => {
     const cardEl = createCardElement(fileName);
     boardEl.appendChild(cardEl);
+    inserted++;
   });
 
-  // 3.11) Guardamos el total de pares para saber cuándo terminó
-  totalPairs = neededPairs;
-
-  // 3.12) Ajustamos el tamaño real del tablero para que quepa en pantalla
-  adjustBoardSize();
+  // 3.14.2) Cuántos espacios vacíos faltan para completar 4×cols
+  const totalCells    = rows * cols;
+  const placeholders  = totalCells - inserted;
+  for (let i = 0; i < placeholders; i++) {
+    const ph = document.createElement("div");
+    ph.classList.add("card", "placeholder");
+    boardEl.appendChild(ph);
+  }
 }
 
 // ----------------------
-// 4) Recalcula dimensiones cuando la ventana cambia de tamaño
+// 4) Reajustar al redimensionar (sin volver a barajar)
 // ----------------------
 
-function adjustBoardSize() {
+function adjustBoardSizeOnResize() {
   if (currentRows === 0 || currentCols === 0) return;
 
-  // 4.1) Espacio horizontal disponible (quitamos algo de margen izquierdo/derecho)
-  const viewportWidth = window.innerWidth;   // ancho total de la ventana
-  const viewportHeight = window.innerHeight; // alto total de la ventana
+  const rows = currentRows;
+  const cols = currentCols;
+  const gap  = 10;
 
-  // 4.2) Calculamos cuánto ocupa la parte superior (h1 + botón + márgenes)
-  // boardEl.offsetTop nos da la distancia desde el top de la página hasta el tablero,
-  // incluyendo márgenes de h1 y botón.
-  const occupiedAbove = boardEl.offsetTop;
+  const viewportWidth  = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const occupiedAbove  = boardEl.offsetTop;
 
-  // 4.3) Definimos el gap que hay entre cartas (en px). Debe concordar con CSS: gap: 10px.
-  const gap = 10;
+  // Igual cálculo de tamaño para que 4 filas × cols columnas sigan cabiendo
+  const availableWidth  = viewportWidth  - gap * (cols - 1);
+  const availableHeight = viewportHeight - occupiedAbove - gap * (rows - 1);
 
-  // 4.4) Ancho y alto disponibles para el grid propiamente dicho
-  const availableWidth  = viewportWidth  - gap * (currentCols - 1);
-  const availableHeight = viewportHeight - occupiedAbove - gap * (currentRows - 1);
+  const cardSizeW = Math.floor(availableWidth  / cols);
+  const cardSizeH = Math.floor(availableHeight / rows);
+  const cardSize  = Math.min(cardSizeW, cardSizeH);
 
-  // 4.5) Calculamos el tamaño máximo en px que puede tener cada carta para que cuadre todo
-  const cardSizeH = Math.floor(availableHeight / currentRows);
-  const cardSizeW = Math.floor(availableWidth  / currentCols);
-  const cardSize  = Math.min(cardSizeH, cardSizeW);
+  const boardWidth  = cardSize * cols + gap * (cols - 1);
+  const boardHeight = cardSize * rows + gap * (rows - 1);
 
-  // 4.6) Ahora determinamos el tamaño total del tablero (incluyendo gaps)
-  const boardWidth  = cardSize * currentCols + gap * (currentCols - 1);
-  const boardHeight = cardSize * currentRows + gap * (currentRows - 1);
-
-  // 4.7) Ajustamos el contenedor #game-board a ese ancho y alto
   boardEl.style.width  = `${boardWidth}px`;
   boardEl.style.height = `${boardHeight}px`;
 }
 
-// Reajustar cuando el usuario redimensione la ventana
+// Reajustamos tamaño cuando la ventana cambie
 window.addEventListener("resize", () => {
-  adjustBoardSize();
+  adjustBoardSizeOnResize();
 });
 
 // ----------------------
