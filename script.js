@@ -21,9 +21,7 @@ const ALL_IMAGE_FILES = [
   "J_1.png", "J_2.png",
   "K_1.png", "K_2.png",
   "L_1.png", "L_2.png",
-  "M_1.png", "M_2.png",
-  "N_1.png", "N_2.png",
-  "O_1.png", "O_2.png"   // Ejemplo para llegar a 32
+   // Ejemplo para llegar a 32
   // … agrega/quita según tus archivos. Total debe ser par.
 ];
 
